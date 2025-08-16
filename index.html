@@ -1632,7 +1632,7 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
                     <thead>
                         <tr>
                             <th data-translate="table_sale_id">Sale ID</th>
-                            <th data-translate="table_date">Date</th>
+                            <th data-translate="label_date_time">Date &amp; Time</th>
                             <th data-translate="table_items_count">Items</th>
                             <th data-translate="label_discount">Discount</th>
                             <th data-translate="table_total">Total</th>
@@ -1683,6 +1683,13 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
        <hr> 
        <div class="akmdata-management" style="margin-top: 20px;"> 
         <h4 data-translate="title_data_management">Data Management</h4> 
+        <div class="akmform-group">
+            <label class="akmform-label" data-translate="label_delete_by_date">Delete Data by Date:</label>
+            <div class="akmfilter-group">
+                <input type="date" id="delete-data-date" class="akmform-control" style="flex-basis: 200px; flex-grow: 1;">
+                <button class="akmbtn akmbtn-warning" type="button" id="delete-data-by-date-btn"><i class="fas fa-trash"></i> <span data-translate="btn_delete_data_date">Delete Data for Date</span></button>
+            </div>
+        </div>
         <div class="akmform-group">
             <label class="akmform-label" data-translate="label_delete_by_month">Delete Data by Month:</label>
             <div class="akmfilter-group">
@@ -1755,8 +1762,8 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
         <li>Customizable settings including tax rates and receipt branding</li>
         <li>Multi-language support for diverse teams</li>
        </ul> 
-       <h3 data-translate="about_developer_title">Developer</h3> 
-       <p>©️ Aung Kaung Myat </p> 
+       <h3>Developer : </h3> 
+       <p> Aung Kaung Myat </p> 
       </div> 
      </div> 
     </section> 
@@ -1996,7 +2003,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- All original application code will be wrapped in initializeApp() ---
     function initializeApp() {
-        const DB_NAME = 'DYPOS t033';
+        const DB_NAME = 'DYPOS t051';
         const DB_VERSION = 1; 
         let dbInstance;
         let itemToDelete = null;
@@ -2224,6 +2231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             barcodeScannerModeSelect: document.getElementById('barcode-scanner-mode-select'),
             launchScannerBtn: document.getElementById('launch-scanner-btn'),
             barcodeScannerModal: document.getElementById('barcode-scanner-modal'),
+            deleteDataByDateBtn: document.getElementById('delete-data-by-date-btn'),
             deleteDataByMonthBtn: document.getElementById('delete-data-by-month-btn'),
             resetDataBtn: document.getElementById('reset-data-btn'),
             totalOrders: document.getElementById('total-orders'),
@@ -2709,7 +2717,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         async function renderSaleHistoryPage() {
-            const allSales = (await db.getAll('orders', 'status', 'completed')).sort((a,b) => new Date(b.date) - new Date(a.date));
+            const allSales = (await db.getAll('orders', 'status', 'completed')).sort((a,b) => new Date(b.dateTime || b.date) - new Date(a.dateTime || a.date));
             let filteredSales = allSales;
 
             const filterType = document.querySelector('input[name="sale-filter-type"]:checked').value;
@@ -2749,7 +2757,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 UIElements.saleHistoryTableBody.innerHTML = paginatedSales.map(s => `
                     <tr>
                         <td>#${s.id.slice(-8)}</td>
-                        <td>${s.date}</td>
+                        <td>${new Date(s.dateTime || s.date).toLocaleString()}</td>
                         <td>${s.items.length}</td>
                         <td>${formatCurrency(s.discount || 0)}</td>
                         <td>${formatCurrency(s.total)}</td>
@@ -2788,6 +2796,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 yearOptions.push(`<option value="${i}">${i}</option>`);
             }
             deleteYearSelect.innerHTML = yearOptions.join('');
+            
+            document.getElementById('delete-data-date').valueAsDate = new Date();
         }
 
         async function renderReportsPage() {
@@ -2956,8 +2966,13 @@ document.addEventListener('DOMContentLoaded', () => {
             mode_off: { en: "Off", mm: "ပိတ်", jp: "オフ" },
             label_delete_by_month: { en: "Delete Data by Month:", mm: "လအလိုက် Data ဖျက်ရန်:", jp: "月別にデータを削除:" },
             btn_delete_data_month: { en: "Delete Data for Month", mm: "လအတွက် Data ဖျက်မည်", jp: "月別データ削除" },
-            confirm_delete_data_for_month_msg: { en: "Are you sure you want to delete all sales and purchase records for {monthName} {year}? This action cannot be undone.", mm: "{year} ခုနှစ်၊ {monthName} လအတွက် အရောင်းနှင့်အဝယ်မှတ်တမ်းအားလုံးကို ဖျက်မှာသေချာလား? ဤလုပ်ဆောင်ချက်ကိုပြန်ပြင်၍မရပါ။", jp: "本当に{year}年{monthName}のすべての売上および仕入記録を削除しますか？この操作は元に戻せません。" },
-            alert_data_deleted_for_month: { en: "All sales and purchase data for {monthName} {year} has been deleted.", mm: "{year} ခုနှစ်၊ {monthName} လအတွက် အရောင်းနှင့်အဝယ်ဒေတာအားလုံးကို ဖျက်ပြီးပါပြီ။", jp: "{year}年{monthName}のすべての売上および仕入データが削除されました。" },
+            confirm_delete_data_for_month_msg: { en: "Are you sure you want to delete all sales and purchase records for {monthName} {year}? Stock will be adjusted accordingly. This action cannot be undone.", mm: "{year} ခုနှစ်၊ {monthName} လအတွက် အရောင်းနှင့်အဝယ်မှတ်တမ်းအားလုံးကို ဖျက်မှာသေချာလား? ကုန်ပစ္စည်းလက်ကျန်များကိုလည်း ပြန်လည်ညှိနှိုင်းပါမည်။ ဤလုပ်ဆောင်ချက်ကိုပြန်ပြင်၍မရပါ။", jp: "本当に{year}年{monthName}のすべての売上および仕入記録を削除しますか？在庫はそれに応じて調整されます。この操作は元に戻せません。" },
+            alert_data_deleted_for_month: { en: "All sales and purchase data for {monthName} {year} has been deleted and stock reconciled.", mm: "{year} ခုနှစ်၊ {monthName} လအတွက် အရောင်းနှင့်အဝယ်ဒေတာအားလုံးကို ဖျက်ပြီး ကုန်ပစ္စည်းလက်ကျန်များကို ညှိနှိုင်းပြီးပါပြီ။", jp: "{year}年{monthName}のすべての売上および仕入データが削除され、在庫が調整されました。" },
+            label_delete_by_date: { en: "Delete Data by Date:", mm: "ရက်စွဲအလိုက် Data ဖျက်ရန်:", jp: "日付別にデータを削除:" },
+            btn_delete_data_date: { en: "Delete Data for Date", mm: "ရက်စွဲအတွက် Data ဖျက်မည်", jp: "日付のデータを削除" },
+            confirm_delete_data_for_date_msg: { en: "Are you sure you want to delete all sales and purchase records for {date}? Stock will be adjusted accordingly. This action cannot be undone.", mm: "{date} ရက်နေ့အတွက် အရောင်းနှင့်အဝယ်မှတ်တမ်းအားလုံးကို ဖျက်မှာသေချာလား? ကုန်ပစ္စည်းလက်ကျန်များကိုလည်း ပြန်လည်ညှိနှိုင်းပါမည်။ ဤလုပ်ဆောင်ချက်ကိုပြန်ပြင်၍မရပါ။", jp: "本当に{date}のすべての売上および仕入記録を削除しますか？在庫はそれに応じて調整されます。この操作は元に戻せません。" },
+            alert_data_deleted_for_date: { en: "All sales and purchase data for {date} has been deleted and stock reconciled.", mm: "{date} ရက်နေ့အတွက် အရောင်းနှင့်အဝယ်ဒေတာအားလုံးကို ဖျက်ပြီး ကုန်ပစ္စည်းလက်ကျန်များကို ညှိနှိုင်းပြီးပါပြီ။", jp: "{date}のすべての売上および仕入データが削除され、在庫が調整されました。" },
+            alert_error_deleting_data: { en: "An error occurred while deleting data.", mm: "ဒေတာဖျက်ရာတွင် အမှားအယွင်းဖြစ်ပွားခဲ့သည်။", jp: "データの削除中にエラーが発生しました。" },
             title_expiring_soon_products: { en: "Expiring Soon Products", mm: "ကုန်ဆုံးရက်နီး ကုန်ပစ္စည်းများ", jp: "期限間近の製品" },
             label_expiry_date: { en: "Expiration Date", mm: "ကုန်ဆုံးရက်", jp: "有効期限" },
             label_show_expiring_in: { en: "Show expiring in (days):", mm: "ရက်အတွင်းကုန်ဆုံးမည့်:", jp: "期限切れ表示（日）:" },
@@ -3287,6 +3302,7 @@ document.addEventListener('DOMContentLoaded', () => {
             UIElements.languageSelect.addEventListener('change', (e) => setLanguage(e.target.value));
             UIElements.appModeSelect.addEventListener('change', handleAppModeChange);
             UIElements.barcodeScannerModeSelect.addEventListener('change', handleBarcodeModeChange);
+            UIElements.deleteDataByDateBtn.addEventListener('click', handleDeleteDataByDate);
             UIElements.deleteDataByMonthBtn.addEventListener('click', handleDeleteDataByMonth);
             UIElements.resetDataBtn.addEventListener('click', handleResetAllData);
             document.getElementById('save-product-btn').addEventListener('click', handleSaveProduct);
@@ -3414,6 +3430,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.currentOrder = {
                 id: `ord-${Date.now()}`,
                 date: new Date().toISOString().slice(0, 10),
+                dateTime: new Date().toISOString(),
                 status: 'akmactive',
                 items: [],
                 subtotal: 0, 
@@ -3520,6 +3537,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const delBtn = document.getElementById('delete-product-btn');
             const idInput = document.getElementById('product-id');
             const barcodeInput = document.getElementById('product-barcode');
+            const barcodeGroup = barcodeInput.parentElement;
+
+            if (state.barcodeScannerMode === 'off') {
+                barcodeGroup.style.display = 'none';
+            } else {
+                barcodeGroup.style.display = 'block';
+            }
 
             if (productId) {
                 const product = await db.get('products', productId);
@@ -3762,7 +3786,7 @@ document.addEventListener('DOMContentLoaded', () => {
             receiptContent.innerHTML = `
                 <h4>${receiptTitle}</h4>
                 <p>${getTranslation('receipt_sale_id')}: ${order.id.slice(-8)}</p>
-                <p>${getTranslation('receipt_date')}: ${new Date().toLocaleString()}</p>
+                <p>${getTranslation('receipt_date')}: ${new Date(order.dateTime).toLocaleString()}</p>
                 <div class="akmreceipt-divider"></div>
                 <table>
                     <thead>
@@ -3900,6 +3924,92 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        async function deleteTransactionsAndReconcileStock(startDate, endDate) {
+            // Phase 1: Read data to be deleted
+            const orderRange = IDBKeyRange.bound(startDate, endDate);
+            const purchaseRange = IDBKeyRange.bound(`${startDate}T00:00`, `${endDate}T23:59`);
+        
+            const [ordersToDelete, purchasesToDelete] = await Promise.all([
+                db.getAll('orders', 'date', orderRange).then(orders => orders.filter(o => o.status === 'completed')),
+                db.getAll('purchases', 'dateTime', purchaseRange)
+            ]);
+        
+            if (ordersToDelete.length === 0 && purchasesToDelete.length === 0) {
+                return; // Nothing to delete
+            }
+        
+            // Phase 2: Calculate stock adjustments
+            const stockAdjustments = new Map();
+        
+            // When deleting a sale, stock should be returned (increase)
+            ordersToDelete.forEach(order => {
+                order.items.forEach(item => {
+                    const currentAdj = stockAdjustments.get(item.productId) || 0;
+                    stockAdjustments.set(item.productId, currentAdj + item.quantity);
+                });
+            });
+        
+            // When deleting a purchase, stock should be removed (decrease)
+            purchasesToDelete.forEach(purchase => {
+                const currentAdj = stockAdjustments.get(purchase.productId) || 0;
+                stockAdjustments.set(purchase.productId, currentAdj - purchase.quantity);
+            });
+        
+            // Phase 3: Perform all writes in a single transaction
+            return new Promise((resolve, reject) => {
+                const tx = dbInstance.transaction(['stock', 'orders', 'purchases'], 'readwrite');
+                const stockStore = tx.objectStore('stock');
+                const orderStore = tx.objectStore('orders');
+                const purchaseStore = tx.objectStore('purchases');
+                
+                tx.oncomplete = resolve;
+                tx.onerror = event => reject(event.target.error);
+
+                // Apply stock adjustments
+                for (const [productId, adjustment] of stockAdjustments.entries()) {
+                    const getReq = stockStore.get(productId);
+                    getReq.onsuccess = () => {
+                        const stockItem = getReq.result;
+                        if (stockItem) {
+                            stockItem.quantity += adjustment;
+                            stockStore.put(stockItem);
+                        }
+                    };
+                }
+
+                // Delete records
+                ordersToDelete.forEach(o => orderStore.delete(o.id));
+                purchasesToDelete.forEach(p => purchaseStore.delete(p.id));
+            });
+        }
+
+        async function handleDeleteDataByDate() {
+            const date = document.getElementById('delete-data-date').value;
+             if (!date) {
+                alert(getTranslation('alert_select_date'));
+                return;
+            }
+
+            showConfirmation({
+                title: getTranslation('label_delete_by_date'),
+                message: getTranslation('confirm_delete_data_for_date_msg', { date }),
+                async onConfirm() {
+                    try {
+                        await deleteTransactionsAndReconcileStock(date, date);
+                        alert(getTranslation('alert_data_deleted_for_date', { date }));
+                        await renderDashboard();
+                        await renderSaleHistoryPage();
+                        await renderPurchasesPage();
+                    } catch (error) {
+                        console.error('Error deleting data by date:', error);
+                        alert(getTranslation('alert_error_deleting_data'));
+                    } finally {
+                        closeModal('confirm-modal');
+                    }
+                }
+            });
+        }
+
         async function handleDeleteDataByMonth() {
             const month = document.getElementById('delete-data-month').value;
             const year = document.getElementById('delete-data-year').value;
@@ -3910,45 +4020,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const monthPadded = month.toString().padStart(2, '0');
+            const startDate = `${year}-${monthPadded}-01`;
+            const lastDayOfMonth = new Date(year, month, 0).getDate();
+            const endDate = `${year}-${monthPadded}-${lastDayOfMonth}`;
+
             showConfirmation({
                 title: getTranslation('label_delete_by_month'),
                 message: getTranslation('confirm_delete_data_for_month_msg', { monthName, year }),
-                async onConfirm() {
-                     try {
-                        const monthPadded = month.toString().padStart(2, '0');
-                        const startDate = `${year}-${monthPadded}-01`;
-                        const lastDayOfMonth = new Date(year, month, 0).getDate();
-                        const endDate = `${year}-${monthPadded}-${lastDayOfMonth}`;
-
-                        const orderTx = dbInstance.transaction('orders', 'readwrite');
-                        const orderStore = orderTx.objectStore('orders');
-                        const orderIndex = orderStore.index('date');
-                        const orderCursor = await orderIndex.openCursor(IDBKeyRange.bound(startDate, endDate));
-                        if (orderCursor) {
-                            do {
-                                orderCursor.delete();
-                            } while (await orderCursor.continue());
-                        }
-                        await new Promise(resolve => orderTx.oncomplete = resolve);
-
-                        const purchaseTx = dbInstance.transaction('purchases', 'readwrite');
-                        const purchaseStore = purchaseTx.objectStore('purchases');
-                        const purchaseIndex = purchaseStore.index('dateTime');
-                        const purchaseCursor = await purchaseIndex.openCursor(IDBKeyRange.bound(`${startDate}T00:00`, `${endDate}T23:59:59`));
-                        if (purchaseCursor) {
-                            do {
-                                purchaseCursor.delete();
-                            } while (await purchaseCursor.continue());
-                        }
-                        await new Promise(resolve => purchaseTx.oncomplete = resolve);
-
+                async onConfirm() {                    try {
+                        await deleteTransactionsAndReconcileStock(startDate, endDate);
                         alert(getTranslation('alert_data_deleted_for_month', { monthName, year }));
                         await renderDashboard();
-                        closeModal('confirm-modal');
-
+                        await renderSaleHistoryPage();
+                        await renderPurchasesPage();
                     } catch (error) {
                         console.error('Error deleting data by month:', error);
                         alert(getTranslation('alert_error_deleting_data'));
+                    } finally {
                         closeModal('confirm-modal');
                     }
                 }
@@ -4122,7 +4211,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Sale ID,Date,Item Count,Subtotal,Discount,Tax,Grand Total\n";
             state.filteredSales.forEach(s => {
-                csvContent += `#${s.id.slice(-8)},${s.date},${s.items.length},${s.subtotal},${s.discount || 0},${s.tax},${s.total}\n`;
+                csvContent += `#${s.id.slice(-8)},${new Date(s.dateTime).toLocaleString()},${s.items.length},${s.subtotal},${s.discount || 0},${s.tax},${s.total}\n`;
             });
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
