@@ -1672,10 +1672,10 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
         </select>
        </div>
        <div class="akmform-group">
-         <label for="barcode-scanner-mode-select" class="akmform-label" data-translate="label_barcode_scanner">Barcode Scanner Mode</label>
+         <label for="barcode-scanner-mode-select" class="akmform-label" data-translate="label_mode">Mode</label>
          <select id="barcode-scanner-mode-select" class="akmform-control">
-             <option value="off" data-translate="mode_off">Off</option>
-             <option value="on" data-translate="mode_on">On</option>
+             <option value="off" data-translate="mode_normal">Normal Mode</option>
+             <option value="on" data-translate="mode_scanner">Scanner Mode</option>
          </select>
        </div>
        <div class="akmform-group"> <button class="akmbtn akmbtn-primary" type="button" id="save-settings-btn"><i class="fas fa-save"></i> <span data-translate="btn_save_settings">Save Settings</span></button> 
@@ -1951,16 +1951,26 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
 <script type="text/javascript" id="dcoder_script">
 document.addEventListener('DOMContentLoaded', () => {
     // --- START: Activation Code Logic ---
-      
-
-    const correctCode = 'd939fdj22ef';
     const activationModal = document.getElementById('activation-modal');
     const activationInput = document.getElementById('activation-code-input');
     const activationError = document.getElementById('activation-error');
     const submitActivationBtn = document.getElementById('submit-activation-btn');
     const appContainer = document.querySelector('.akmapp-container');
 
+    function getDynamicActivationCode() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1; // getMonth() is 0-indexed
+        const day = today.getDate();
+        const staticKey = 'd939fdj22ef';
+        
+        // Format: YYYYMDD + staticKey
+        const datePart = `${year}${month}${day}`;
+        return `${datePart}${staticKey}`;
+    }
+
     function handleActivation() {
+        const correctCode = getDynamicActivationCode();
         if (activationInput.value.trim() === correctCode) {
             localStorage.setItem('isAppActivated', 'true');
             activationError.style.display = 'none';
@@ -1997,13 +2007,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
-
     // --- END: Activation Code Logic ---
 
 
     // --- All original application code will be wrapped in initializeApp() ---
     function initializeApp() {
-        const DB_NAME = 'DYPOS t051';
+        const DB_NAME = 'DYPOS t07';
         const DB_VERSION = 1; 
         let dbInstance;
         let itemToDelete = null;
@@ -2961,9 +2970,12 @@ document.addEventListener('DOMContentLoaded', () => {
             label_app_mode: { en: "Application Mode", mm: "စနစ်အမျိုးအစား", jp: "アプリケーションモード" },
             mode_retail: { en: "Retail Mode", mm: "လက်လီအရောင်းစနစ်", jp: "小売モード" },
             mode_bakery: { en: "Bakery Mode", mm: "ဘေကာရီစနစ်", jp: "ベーカリー モード" },
-            label_barcode_scanner: { en: "Barcode Scanner Mode", mm: "ဘားကုဒ်စကင်နာစနစ်", jp: "バーコードスキャナーモード" },
-            mode_on: { en: "On", mm: "ဖွင့်", jp: "オン" },
-            mode_off: { en: "Off", mm: "ပိတ်", jp: "オフ" },
+            label_mode: { en: "Mode", mm: "မုဒ်", jp: "モード" },
+            mode_scanner: { en: "Scanner Mode", mm: "စကင်နာမုဒ်", jp: "スキャナーモード" },
+            mode_normal: { en: "Normal Mode", mm: "ပုံမှန်မုဒ်", jp: "通常モード" },
+            confirm_change_mode_title: { en: "Confirm Mode Change", mm: "မုဒ်ပြောင်းရန် အတည်ပြုပါ", jp: "モード変更の確認" },
+            confirm_change_mode_reload_msg: { en: "Switching modes will restart the application to apply changes. Continue?", mm: "မုဒ်ပြောင်းပါက အပြောင်းအလဲများအတွက် program ကိုပြန်လည်စတင်ပါမည်။ ရှေ့ဆက်လုပ်ဆောင်မှာလား?", jp: "モードを切り替えると、変更を適用するためにアプリケーションが再起動します。続行しますか？" },
+            alert_barcode_required: { en: "Barcode is required in Scanner Mode.", mm: "စကင်နာမုဒ်တွင် ဘားကုဒ် လိုအပ်ပါသည်။", jp: "スキャナーモードではバーコードが必要です。" },
             label_delete_by_month: { en: "Delete Data by Month:", mm: "လအလိုက် Data ဖျက်ရန်:", jp: "月別にデータを削除:" },
             btn_delete_data_month: { en: "Delete Data for Month", mm: "လအတွက် Data ဖျက်မည်", jp: "月別データ削除" },
             confirm_delete_data_for_month_msg: { en: "Are you sure you want to delete all sales and purchase records for {monthName} {year}? Stock will be adjusted accordingly. This action cannot be undone.", mm: "{year} ခုနှစ်၊ {monthName} လအတွက် အရောင်းနှင့်အဝယ်မှတ်တမ်းအားလုံးကို ဖျက်မှာသေချာလား? ကုန်ပစ္စည်းလက်ကျန်များကိုလည်း ပြန်လည်ညှိနှိုင်းပါမည်။ ဤလုပ်ဆောင်ချက်ကိုပြန်ပြင်၍မရပါ။", jp: "本当に{year}年{monthName}のすべての売上および仕入記録を削除しますか？在庫はそれに応じて調整されます。この操作は元に戻せません。" },
@@ -3382,8 +3394,29 @@ document.addEventListener('DOMContentLoaded', () => {
         
         async function handleBarcodeModeChange(e) {
             const newMode = e.target.value;
-            await db.put('settings', { key: 'barcodeScannerMode', value: newMode });
-            applyBarcodeScannerMode(newMode);
+            const oldMode = state.barcodeScannerMode;
+            const selectElement = e.target;
+        
+            if (newMode === oldMode) return;
+        
+            selectElement.value = oldMode;
+        
+            showConfirmation({
+                title: getTranslation('confirm_change_mode_title'),
+                message: getTranslation('confirm_change_mode_reload_msg'),
+                isDanger: false,
+                okText: 'btn_confirm',
+                onConfirm: async () => {
+                    try {
+                        await db.put('settings', { key: 'barcodeScannerMode', value: newMode });
+                        location.reload(); // Reload the application to apply the new mode
+                    } catch (error) {
+                        console.error("Error saving barcode mode:", error);
+                        alert(getTranslation('alert_settings_save_fail'));
+                        closeModal('confirm-modal');
+                    }
+                },
+            });
         }
         
         function setupImageUploadListeners() {
@@ -3538,12 +3571,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const idInput = document.getElementById('product-id');
             const barcodeInput = document.getElementById('product-barcode');
             const barcodeGroup = barcodeInput.parentElement;
+            const barcodeLabel = barcodeGroup.querySelector('.akmform-label');
 
-            if (state.barcodeScannerMode === 'off') {
-                barcodeGroup.style.display = 'none';
+            // --- Updated Logic for Barcode Field ---
+            barcodeGroup.style.display = 'block'; // Always show the field
+            if (state.barcodeScannerMode === 'on') {
+                barcodeInput.required = true;
+                barcodeLabel.innerHTML = getTranslation('label_product_barcode') + ' <span style="color:var(--danger-color)">*</span>';
             } else {
-                barcodeGroup.style.display = 'block';
+                barcodeInput.required = false;
+                barcodeLabel.textContent = getTranslation('label_product_barcode');
             }
+            // --- End of Updated Logic ---
 
             if (productId) {
                 const product = await db.get('products', productId);
@@ -3577,7 +3616,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const imageSrc = document.getElementById('product-image-preview').src;
             const image = imageSrc.startsWith('data:image') ? imageSrc : null;
 
-            if (!name || isNaN(price) || !categoryId) { alert(getTranslation('alert_fill_all_fields')); return; }
+            // --- Updated Validation Logic ---
+            if (state.barcodeScannerMode === 'on' && !barcode) {
+                alert(getTranslation('alert_barcode_required'));
+                return;
+            }
+            if (!name || isNaN(price) || !categoryId) { 
+                alert(getTranslation('alert_fill_all_fields')); 
+                return; 
+            }
+            // --- End of Updated Validation ---
             
             try {
                 if (id) {
