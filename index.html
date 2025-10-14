@@ -802,7 +802,8 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
   flex-wrap: wrap;
 }
 
-#report-modal .akmmodal-dialog { 
+#report-modal .akmmodal-dialog,
+#sale-details-modal .akmmodal-dialog { 
   max-width: 800px; 
 }
 
@@ -976,7 +977,8 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
   .akmlogo i { font-size: 1.2rem; }
   .akmheader-actions { gap: 8px; }
   .akmmodal-dialog { max-width: calc(100% - 30px); margin: 15px auto; }
-  #report-modal .akmmodal-dialog { max-width: calc(100% - 30px); }
+  #report-modal .akmmodal-dialog,
+  #sale-details-modal .akmmodal-dialog { max-width: calc(100% - 30px); }
   .akmtable th, .akmtable td { padding: 6px 8px; font-size: 0.8rem; }
   .akmtable .akmbtn { padding: 4px 6px; font-size: 0.7rem; }
   .akmproducts-grid {
@@ -1786,6 +1788,23 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
   </nav>
 
   <!-- ============== OTHER MODALS ============== -->
+  
+  <div class="akmmodal" id="sale-details-modal">
+    <div class="akmmodal-dialog">
+        <div class="akmmodal-content">
+            <div class="akmmodal-header">
+                <h3 class="akmmodal-title" data-translate="modal_sale_details_title">Sale Details</h3>
+                <button type="button" class="akmmodal-close">×</button>
+            </div>
+            <div class="akmmodal-body">
+                <!-- Content will be injected by JavaScript -->
+            </div>
+            <div class="akmmodal-footer">
+                <button type="button" class="akmbtn akmbtn-secondary akmmodal-close" data-translate="btn_close">Close</button>
+            </div>
+        </div>
+    </div>
+  </div>
 
   <div class="akmmodal" id="product-modal"> 
    <div class="akmmodal-dialog"> 
@@ -1902,7 +1921,7 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
    </div> 
   </div> 
   <div class="akmmodal" id="report-modal"> 
-   <div class="akmmodal-dialog" style="max-width: 800px;"> 
+   <div class="akmmodal-dialog"> 
     <div class="akmmodal-content"> 
      <div class="akmmodal-header"> 
       <h3 class="akmmodal-title"><span data-translate="title_report">Report</span> - <span id="report-date-title"></span></h3> <button type="button" class="akmmodal-close">×</button> 
@@ -2012,7 +2031,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- All original application code will be wrapped in initializeApp() ---
     function initializeApp() {
-        const DB_NAME = 'DYPOS t07';
+        const DB_NAME = 'dypost071';
         const DB_VERSION = 1; 
         let dbInstance;
         let itemToDelete = null;
@@ -2771,6 +2790,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${formatCurrency(s.discount || 0)}</td>
                         <td>${formatCurrency(s.total)}</td>
                         <td class="akmaction-buttons">
+                            <button class="akmbtn akmbtn-sm akmbtn-outline-primary" data-action="view-sale-details" data-id="${s.id}"><i class="fas fa-eye"></i></button>
                             <button class="akmbtn akmbtn-sm akmbtn-danger" data-action="delete-sale" data-id="${s.id}"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
@@ -2950,6 +2970,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const translations = {
+            modal_sale_details_title: { en: "Sale Details", mm: "အရောင်းအသေးစိတ်", jp: "販売詳細" },
             menu_main: { en: "Main", mm: "ပင်မ", jp: "メイン" },
             menu_dashboard: { en: "Dashboard", mm: "ဒိုင်ခွက်", jp: "ダッシュボード" },
             menu_new_sale: { en: "New Sale", mm: "အရောင်းသစ်", jp: "新規販売" },
@@ -3351,6 +3372,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'edit-category': openCategoryModal(id); break;
                     case 'delete-category': openDeleteModal(id, 'category'); break;
                     case 'delete-purchase': openDeleteModal(id, 'purchase'); break;
+                    case 'view-sale-details': showSaleDetailsModal(id); break;
                     case 'delete-sale': openDeleteModal(id, 'sale'); break;
                 }
             }
@@ -3913,6 +3935,77 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal('image-viewer-modal');
         }
 
+        async function showSaleDetailsModal(saleId) {
+            try {
+                const sale = await db.get('orders', saleId);
+                if (!sale) {
+                    console.error("Sale not found:", saleId);
+                    return;
+                }
+
+                const modal = document.getElementById('sale-details-modal');
+                const titleEl = modal.querySelector('.akmmodal-title');
+                const bodyEl = modal.querySelector('.akmmodal-body');
+                
+                titleEl.textContent = `${getTranslation('modal_sale_details_title')} #${sale.id.slice(-8)}`;
+
+                let itemsHtml = sale.items.map(item => `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.quantity}</td>
+                        <td>${formatCurrency(item.price)}</td>
+                        <td class="akmtext-right">${formatCurrency(item.price * item.quantity)}</td>
+                    </tr>
+                `).join('');
+
+                if (sale.items.length === 0) {
+                    itemsHtml = `<tr><td colspan="4" style="text-align:center;">${getTranslation('empty_no_items_added')}</td></tr>`;
+                }
+                
+                bodyEl.innerHTML = `
+                    <p><strong>${getTranslation('receipt_date')}:</strong> ${new Date(sale.dateTime).toLocaleString()}</p>
+                    <div class="akmtable-responsive">
+                        <table class="akmtable">
+                            <thead>
+                                <tr>
+                                    <th>${getTranslation('table_item')}</th>
+                                    <th>${getTranslation('table_qty')}</th>
+                                    <th>${getTranslation('table_price')}</th>
+                                    <th class="akmtext-right">${getTranslation('table_total')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="akmorder-summary" style="margin-top: 15px; border-top: 1px solid var(--glass-border); padding-top: 10px;">
+                        <div class="akmsummary-row">
+                            <span class="akmsummary-label">${getTranslation('label_subtotal')}:</span>
+                            <span class="akmsummary-value">${formatCurrency(sale.subtotal)}</span>
+                        </div>
+                        <div class="akmsummary-row">
+                            <span class="akmsummary-label">${getTranslation('label_discount')}:</span>
+                            <span class="akmsummary-value">-${formatCurrency(sale.discount)}</span>
+                        </div>
+                        <div class="akmsummary-row">
+                            <span class="akmsummary-label">${getTranslation('label_tax_rate_value', { rate: state.taxRate })}:</span>
+                            <span class="akmsummary-value">${formatCurrency(sale.tax)}</span>
+                        </div>
+                        <div class="akmsummary-row akmgrand-total">
+                            <span class="akmsummary-label">${getTranslation('label_grand_total')}:</span>
+                            <span class="akmsummary-value">${formatCurrency(sale.total)}</span>
+                        </div>
+                    </div>
+                `;
+
+                openModal('sale-details-modal');
+
+            } catch (error) {
+                console.error("Error showing sale details:", error);
+            }
+        }
+
         function openDeleteModal(id, type, fromModal = false) {
             itemToDelete = { id, type, fromModal };
             const typeName = getTranslation(`entity_${type}`);
@@ -4339,7 +4432,4 @@ document.addEventListener('DOMContentLoaded', () => {
           });
       });
     }
-  </script>
-
-
-</body></html>
+  </script></body></html>
