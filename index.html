@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" sizes="dypos" href="/dypos/icons/icon-512x512.png">
   <link rel="manifest" href="/dypos/manifest.json">
   <link rel="manifest" href="/dypos/sw.js">
-  <title>Modern POS System</title> 
+  <title>Modern POS System - v24.0 Update</title> 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> 
@@ -24,7 +24,7 @@
   --success-color-light: #eb843f; /* Orange */
   --danger-color-light: #E63946; /* Red */
   --warning-color: #FFA500; /* Orange, consistent across modes */
-  --info-color: #ff8839; /* Blue for Bluetooth */
+  --info-color: #007BFF; /* Blue for Bluetooth */
   --text-color-light: #4e515e; /* Greyish sub-text */
   --text-emphasis-light: #26211c; /* Dark heading text */
   --bg-color-light: linear-gradient(135deg, #ffdeb2, #ffd0de, #eee8f0, #eee8f0, #ffdeb2); /* Peach to pink to light gray */
@@ -150,7 +150,7 @@ body.akmlight-mode {
   font-size: 1.3rem;
   cursor: pointer;
   margin-right: 15px;
-  display: none;
+  display: block; /* Always visible */
 }
 
 .akmheader-actions {
@@ -185,7 +185,7 @@ body.akmlight-mode {
 }
 
 .akmsidebar-collapsed {
-  transform: translateX(-100%);
+  transform: translateX(calc(-1 * var(--sidebar-width)));
 }
 
 .akmsidebar.akmshow {
@@ -585,7 +585,23 @@ body.akmlight-mode {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 15px;
+  max-height: 68vh; /* Added for vertical scroll on laptop */
+  overflow-y: auto; /* Added for vertical scroll on laptop */
+  padding-right: 5px; /* space for scrollbar */
 }
+
+/* Scrollbar styling for product grid */
+.akmproducts-grid::-webkit-scrollbar {
+    width: 5px;
+}
+.akmproducts-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+.akmproducts-grid::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 10px;
+}
+
 
 .akmproduct-card {
   display: flex;
@@ -799,7 +815,7 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
 }
 
 .akmempty-state i {
-  font-size: 15px;
+  font-size: 20px;
   margin-bottom: 12px;
   color: var(--secondary-color);
 }
@@ -857,11 +873,15 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
 }
 
 @media (max-width: 991.98px) {
-  .akmsidebar { transform: translateX(-100%); z-index: 110; }
-  .akmsidebar.akmshow { transform: translateX(0); }
+  .akmsidebar { 
+      z-index: 110; 
+  }
+  .akmsidebar:not(.akmsidebar-collapsed) {
+      transform: translateX(0);
+  }
   .akmmain-content { margin-left: 0; }
   .akmmain-content-collapsed { margin-left: 0; }
-  .akmmenu-toggle { display: block; }
+  
   body.akmsidebar-open::before {
     content: '';
     position: fixed;
@@ -880,11 +900,13 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
     grid-template-rows: repeat(3, auto);
     grid-auto-columns: 120px;
     overflow-x: auto;
+    overflow-y: hidden; /* Prevent vertical scroll on mobile */
     gap: 12px;
     padding-bottom: 10px;
     -webkit-overflow-scrolling: touch;
     grid-template-columns: unset;
     flex-wrap: unset;
+    max-height: none; /* Reset max-height for mobile */
   }
   .akmproducts-grid::-webkit-scrollbar {
     display: none;
@@ -1244,14 +1266,14 @@ body.akmdark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicato
        </div> 
       </div> 
       <div class="akmstats-grid"> 
-       <div class="akmstat-card"> <span class="akmstat-title" data-translate="stat_sales_today">Sales Today</span> <span class="akmstat-value" id="total-orders">0</span> <span class="akmstat-change akmup"><i class="fas fa-arrow-up"></i><span>-</span></span> 
+      <div class="akmstat-card"> <span class="akmstat-title" data-translate="stat_sales_today">Sales Today</span> <span class="akmstat-value" id="total-orders">0</span> <span class="akmstat-change akmup"><i class="fas fa-arrow-up"></i><span>-</span></span> 
        </div> 
        <div class="akmstat-card"> <span class="akmstat-title" data-translate="stat_todays_profit">Today's Profit</span> <span class="akmstat-value" id="net-profit">0 ကျပ်</span> <span class="akmstat-change akmdown"><i class="fas fa-chart-line"></i><span>-</span></span> 
        </div> 
        <div class="akmstat-card"> <span class="akmstat-title" data-translate="stat_sales_revenue">Sales Revenue</span> <span class="akmstat-value" id="sales-revenue">0</span> <span class="akmstat-change akmup"><i class="fas fa-wallet"></i><span>-</span></span> 
        </div> 
        <div class="akmstat-card"> <span class="akmstat-title" data-translate="stat_low_stock">Low Stock Items</span> <span class="akmstat-value" id="low-stock-items">0</span> <span class="akmstat-change akmdown"><i class="fas fa-exclamation-triangle"></i><span>-</span></span> 
-       </div> 
+       </div>
       </div> 
      </div> 
     </section> 
@@ -1883,7 +1905,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- END: Activation Code Logic ---
 
     function initializeApp() {
-        const DB_NAME = 'dypost073_final';
+        const DB_NAME = 'dypost075_final';
         const DB_VERSION = 1; 
         let dbInstance;
         let itemToDelete = null;
@@ -2875,7 +2897,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.preventDefault();
                     state.currentSection = e.currentTarget.dataset.section;
                     render();
-                    if (window.innerWidth < 992) UIElements.sidebar.classList.remove('akmshow');
+                    if (window.innerWidth < 992) {
+                        UIElements.sidebar.classList.add('akmsidebar-collapsed');
+                        UIElements.mainContent.classList.add('akmmain-content-collapsed');
+                    }
                 });
             });
             UIElements.bottomNav.addEventListener('click', (e) => {
@@ -2886,7 +2911,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     render();
                 }
             });
-            UIElements.menuToggle.addEventListener('click', () => UIElements.sidebar.classList.toggle('akmshow'));
+            
+            // Sidebar Toggle Logic
+            UIElements.menuToggle.addEventListener('click', () => {
+                UIElements.sidebar.classList.toggle('akmsidebar-collapsed');
+                UIElements.mainContent.classList.toggle('akmmain-content-collapsed');
+            });
+            
             UIElements.themeToggle.addEventListener('click', toggleTheme);
             document.getElementById('new-order-btn').addEventListener('click', handleNewSaleFromDashboard);
             document.getElementById('add-new-product-btn').addEventListener('click', () => openProductModal());
@@ -4121,6 +4152,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     db.get('settings', 'appMode'),
                     db.get('settings', 'barcodeScannerMode'),
                 ]);
+
+                // Set initial sidebar state based on screen size
+                if (window.innerWidth < 992) {
+                    UIElements.sidebar.classList.add('akmsidebar-collapsed');
+                    UIElements.mainContent.classList.add('akmmain-content-collapsed');
+                }
 
                 state.currentLanguage = language ? language.value : 'mm';
                 await applyTheme();
